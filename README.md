@@ -1,4 +1,4 @@
-## Tab Watch Later → Obsidian
+## TabVault
 
 Automatically close old tabs in Chrome and send them into a **Watch Later** markdown file inside your Obsidian vault, so your browser stays focused while nothing gets lost.
 
@@ -32,7 +32,7 @@ Think of it as a YouTube **Watch Later** playlist, but for the entire web, and s
 3. Click **Load unpacked**.
 4. Select this folder:
    - `/home/rickaurs/Desktop/playground/vibe-coded-ai-projects/tab handler`
-5. You should now see **Tab Watch Later to Obsidian** in your extensions list.
+5. You should now see **TabVault** in your extensions list.
 
 ### Initial setup (extension only)
 
