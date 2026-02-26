@@ -16,7 +16,8 @@ from datetime import datetime
 #   VAULT_MARKDOWN_PATH = "/home/youruser/Documents/Obsidian/MyVault/Watch Later.md"
 #
 
-VAULT_MARKDOWN_PATH = "/home/youruser/Documents/Obsidian/MyVault/Watch Later.md"
+VAULT_MARKDOWN_PATH = "/home/rickaurs/Desktop/playground/theVault/Watch Later.md"
+
 
 def ensure_file_exists():
   directory = os.path.dirname(VAULT_MARKDOWN_PATH)
