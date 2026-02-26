@@ -12,8 +12,7 @@ Automatically close old tabs in Chrome and send them into a **Watch Later** mark
   - **Generate markdown** for all queued closed tabs.
   - **Copy that markdown to your clipboard** and paste it into any note inside your Obsidian vault (for example `Watch Later.md`).
   - Entries are emitted as tasks like:
-    - `- [ ] [Great article](https://example.com)  `
-      `Closed at: 18:42`
+    - `- [ ] [Great article](https://example.com)`
 
 Think of it as a YouTube **Watch Later** playlist, but for the entire web, and saved straight into Obsidian.
 
@@ -53,8 +52,7 @@ Think of it as a YouTube **Watch Later** playlist, but for the entire web, and s
 - In your **Watch Later** markdown file:
   - Entries are grouped by **date** with headings like `## 2026-02-26`.
   - Each entry is a checkbox task:
-    - `- [ ] [Deep learning talk](https://example.com/…)  `
-      `Closed at: 09:15`
+    - `- [ ] [Deep learning talk](https://example.com/…)`
   - When you finish something, you can tick it off in Obsidian by changing `[ ]` to `[x]`.
 
 ### Automatic writing via local helper (more automatic)

@@ -216,17 +216,13 @@ def append_items_to_markdown(items):
     for item in day_items:
       url = item.get("url") or ""
       title = item.get("title") or url or "Untitled"
-      closed_at = item.get("closedAt") or item.get("closed_at") or 0
-      closed_time = format_time_hm(closed_at) if closed_at else ""
       safe_title = escape_markdown_link_text(title)
       tags = classify_tags_ai(title, url)
       tags_suffix = ""
       if tags:
         tags_suffix = " " + " ".join(f"#{t}" for t in tags)
 
-      new_lines.append(f"- [ ] [{safe_title}]({url}){tags_suffix}  ")
-      if closed_time:
-        new_lines.append(f"  Closed at: {closed_time}")
+      new_lines.append(f"- [ ] [{safe_title}]({url}){tags_suffix}")
       new_lines.append("")
 
     lines[insert_at:insert_at] = new_lines

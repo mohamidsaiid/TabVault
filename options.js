@@ -65,9 +65,8 @@ function buildMarkdownFromItems(items) {
     for (const item of dayItems) {
       const title = escapeMarkdownLinkText(item.title || item.url || "Untitled");
       const url = item.url || "";
-      const closedTime = formatTime(item.closedAt || Date.now());
-      sections.push(`- [ ] [${title}](${url})  `);
-      sections.push(`  Closed at: ${closedTime}`, "");
+      sections.push(`- [ ] [${title}](${url})`);
+      sections.push("");
     }
   }
 
