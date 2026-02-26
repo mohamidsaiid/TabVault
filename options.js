@@ -1,10 +1,13 @@
 const CLOSED_ITEMS_KEY = "closedItems";
+const INACTIVITY_THRESHOLD_KEY = "inactivityThresholdHours";
 
 const generateButton = document.getElementById("generate-markdown");
 const copyButton = document.getElementById("copy-markdown");
 const syncStatusEl = document.getElementById("sync-status");
 const markdownOutputEl = document.getElementById("markdown-output");
 const activityLogEl = document.getElementById("activity-log");
+const inactivitySelectEl = document.getElementById("inactivity-threshold");
+const settingsStatusEl = document.getElementById("settings-status");
 
 function logActivity(message) {
   const div = document.createElement("div");
@@ -17,6 +20,11 @@ function logActivity(message) {
 function setSyncStatus(text, ok = true) {
   syncStatusEl.textContent = text;
   syncStatusEl.className = "status " + (ok ? "ok" : "error");
+}
+
+function setSettingsStatus(text, ok = true) {
+  settingsStatusEl.textContent = text;
+  settingsStatusEl.className = "status " + (ok ? "ok" : "error");
 }
 
 function formatDateISO(dateMs) {
@@ -115,6 +123,46 @@ copyButton.addEventListener("click", () => {
   copyMarkdownToClipboard();
 });
 
+async function loadInactivityThreshold() {
+  try {
+    const result = await chrome.storage.local.get(INACTIVITY_THRESHOLD_KEY);
+    const hours = result[INACTIVITY_THRESHOLD_KEY];
+    if (typeof hours === "number" && !Number.isNaN(hours)) {
+      inactivitySelectEl.value = String(hours);
+      setSettingsStatus(`Current inactivity window: ${hours} hour(s).`, true);
+    } else {
+      // Default to 24 hours.
+      inactivitySelectEl.value = "24";
+      setSettingsStatus("Using default inactivity window: 24 hours.", true);
+    }
+  } catch (e) {
+    console.error(e);
+    setSettingsStatus("Failed to load inactivity window. Using default 24 hours.", false);
+  }
+}
+
+async function saveInactivityThreshold() {
+  const value = inactivitySelectEl.value;
+  const hours = Number(value);
+  if (!hours || hours <= 0) {
+    setSettingsStatus("Invalid inactivity window.", false);
+    return;
+  }
+
+  try {
+    await chrome.storage.local.set({ [INACTIVITY_THRESHOLD_KEY]: hours });
+    setSettingsStatus(`Saved inactivity window: ${hours} hour(s).`, true);
+    logActivity(`Updated inactivity window to ${hours} hour(s).`);
+  } catch (e) {
+    console.error(e);
+    setSettingsStatus("Failed to save inactivity window.", false);
+  }
+}
+
+inactivitySelectEl.addEventListener("change", () => {
+  saveInactivityThreshold();
+});
+
 // Listen for new closed items while this page is open.
 chrome.runtime.onMessage.addListener((message) => {
   if (message && message.type === "tab-closed-logged") {
@@ -139,5 +187,7 @@ chrome.runtime.onMessage.addListener((message) => {
   } catch (e) {
     console.error(e);
   }
+  // Load inactivity threshold setting.
+  await loadInactivityThreshold();
 })(); 
 

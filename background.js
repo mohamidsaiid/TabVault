@@ -1,10 +1,11 @@
-const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 1 day
+const DEFAULT_INACTIVITY_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 1 day
 const ALARM_NAME = "check-stale-tabs";
 const ALARM_PERIOD_MINUTES = 30;
 
 // Keys in chrome.storage.local
 const TAB_METADATA_KEY = "tabMetadata";
 const CLOSED_ITEMS_KEY = "closedItems";
+const INACTIVITY_THRESHOLD_KEY = "inactivityThresholdHours";
 
 /**
  * Load tab metadata map from storage.
@@ -38,6 +39,15 @@ async function loadClosedItems() {
 
 async function saveClosedItems(items) {
   await chrome.storage.local.set({ [CLOSED_ITEMS_KEY]: items });
+}
+
+async function loadInactivityThresholdMs() {
+  const result = await chrome.storage.local.get(INACTIVITY_THRESHOLD_KEY);
+  const hours = result[INACTIVITY_THRESHOLD_KEY];
+  if (typeof hours === "number" && !Number.isNaN(hours) && hours > 0) {
+    return hours * 60 * 60 * 1000;
+  }
+  return DEFAULT_INACTIVITY_THRESHOLD_MS;
 }
 
 function isSupportedHttpUrl(url) {
@@ -187,9 +197,10 @@ async function closeAndLogTab(tab, metaEntry) {
 }
 
 async function checkForStaleTabs() {
-  const [tabs, metadata] = await Promise.all([
+  const [tabs, metadata, thresholdMs] = await Promise.all([
     chrome.tabs.query({}),
-    loadTabMetadata()
+    loadTabMetadata(),
+    loadInactivityThresholdMs()
   ]);
   const now = Date.now();
 
@@ -215,7 +226,7 @@ async function checkForStaleTabs() {
     // Close based on time since the tab was last active (focused), not since opened.
     const lastActiveAt = entry.lastActiveAt || entry.openedAt || now;
     const inactiveDuration = now - lastActiveAt;
-    if (inactiveDuration >= STALE_THRESHOLD_MS) {
+    if (inactiveDuration >= thresholdMs) {
       await closeAndLogTab(tab, entry);
       delete metadata[key];
     }
