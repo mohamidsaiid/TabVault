@@ -23,7 +23,8 @@ Think of it as a YouTube **Watch Later** playlist, but for the entire web, and s
 - `background.js` – Service worker that tracks tabs, detects stale ones, closes them, and logs into a queue, and forwards new items to the local Obsidian helper when available.
 - `options.html` – Minimal dark UI for seeing activity and manually generating markdown from queued items.
 - `options.js` – Frontend logic for generating/copying markdown from queued entries.
-- `obsidian_writer.py` – Optional local helper server that writes closed tabs directly into your Obsidian vault markdown file.
+- `obsidian_writer.py` – Optional local helper server that writes closed tabs directly into your Obsidian vault markdown file, with optional AI-based tagging via Gemini.
+ - `.env.example` – Example environment file showing required/optional configuration values.
 
 ### Installing the extension (Chrome / Chromium)
 
@@ -60,11 +61,17 @@ Think of it as a YouTube **Watch Later** playlist, but for the entire web, and s
 
 To have closed tabs written straight into a markdown file inside your Obsidian vault (no copy–paste), you can run the bundled helper server.
 
-1. Open `obsidian_writer.py` in an editor.
-2. Set **`VAULT_MARKDOWN_PATH`** near the top to the full path of your target note, for example:
+1. Create your **`.env`** file next to `obsidian_writer.py`:
 
-   ```python
-   VAULT_MARKDOWN_PATH = "/home/youruser/Documents/Obsidian/MyVault/Watch Later.md"
+   ```bash
+   cd /home/rickaurs/Desktop/playground/vibe-coded-ai-projects/tab\ handler
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and set at least:
+
+   ```bash
+   VAULT_MARKDOWN_PATH="/full/path/to/your/Obsidian/vault/Watch Later.md"
    ```
 
 3. In a terminal, from this folder, run:
@@ -86,6 +93,31 @@ Now, whenever the extension auto-closes a stale tab:
 
 - It still adds the item to its internal **queue** (for safety).
 - It also sends the item to `http://127.0.0.1:8787/append`, and the helper appends it directly into your Obsidian note, grouped by date, as checkbox tasks.
+
+### Optional: AI-based tagging with Gemini
+
+If you have a Gemini API key, the helper can automatically add topic tags to each entry.
+
+1. Either set the values in `.env` (recommended):
+
+   ```bash
+   VAULT_MARKDOWN_PATH="/full/path/to/your/Obsidian/vault/Watch Later.md"
+   export GEMINI_API_KEY="your_gemini_key_here"
+   # Optional: choose a different model
+   export GEMINI_MODEL="gemini-1.5-flash"
+   python obsidian_writer.py
+   ```
+
+   or export them directly in your shell before running the helper.
+
+2. For each closed tab, the helper sends the title and URL to Gemini with a short prompt asking for 3–6 lowercase tags.
+3. The returned tags are added to the line as `#tags`, for example:
+
+   ```markdown
+   - [ ] [A great deep learning talk](https://youtube.com/...) #video #learning #ai
+   ```
+
+If the API is unavailable or the key is not set, the helper silently falls back to a simple rule-based tagger (no network calls).
 
 If the helper is not running, nothing breaks; items remain queued and you can still use the manual markdown generation flow below.
 

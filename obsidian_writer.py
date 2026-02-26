@@ -3,23 +3,53 @@ import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse
 from datetime import datetime
+from urllib import request as urllib_request, error as urllib_error
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 #
-# Set this to the full path of the markdown file inside your Obsidian vault
-# where you want closed tabs to be recorded. If the file does not exist, it
-# will be created automatically.
-#
-# Example:
-#   VAULT_MARKDOWN_PATH = "/home/youruser/Documents/Obsidian/MyVault/Watch Later.md"
-#
+def load_dotenv(path: str = ".env") -> None:
+  """
+  Very small .env loader: KEY=VALUE per line, # for comments.
+  Does not overwrite existing environment variables.
+  """
+  env_path = Path(path)
+  if not env_path.is_file():
+    return
 
-VAULT_MARKDOWN_PATH = "/home/rickaurs/Desktop/playground/theVault/Watch Later.md"
+  for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+      continue
+    if "=" not in line:
+      continue
+    key, value = line.split("=", 1)
+    key = key.strip()
+    value = value.strip().strip('"').strip("'")
+    if key and key not in os.environ:
+      os.environ[key] = value
+
+
+# Load environment variables from .env (if present) before reading config.
+load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Configuration values (driven by environment / .env)
+# ---------------------------------------------------------------------------
+
+# Required: full path of the markdown file inside your Obsidian vault.
+VAULT_MARKDOWN_PATH = os.environ.get("VAULT_MARKDOWN_PATH", "")
+
+# Gemini configuration: set GEMINI_API_KEY / GEMINI_MODEL in your environment or .env.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 
 
 def ensure_file_exists():
+  if not VAULT_MARKDOWN_PATH:
+    raise RuntimeError("VAULT_MARKDOWN_PATH is not set. Define it in your environment or .env file.")
   directory = os.path.dirname(VAULT_MARKDOWN_PATH)
   if directory and not os.path.isdir(directory):
     os.makedirs(directory, exist_ok=True)
@@ -42,7 +72,7 @@ def escape_markdown_link_text(text: str) -> str:
   return text.replace("[", "\\[").replace("]", "\\]")
 
 
-def classify_tags(title: str, url: str) -> list[str]:
+def classify_tags_rule_based(title: str, url: str) -> list[str]:
   """
   Lightweight auto-tagging based on title/URL.
   This is intentionally simple and rules-based but structured so you can
@@ -72,6 +102,79 @@ def classify_tags(title: str, url: str) -> list[str]:
       seen.add(t)
       unique_tags.append(t)
   return unique_tags
+
+
+def classify_tags_ai(title: str, url: str) -> list[str]:
+  """
+  Classify using Gemini if GEMINI_API_KEY is set; otherwise fall back to rule-based tags.
+  The model is expected to return a single line of space-separated tags, no '#'.
+  """
+  if not GEMINI_API_KEY:
+    return classify_tags_rule_based(title, url)
+
+  prompt = (
+    "You are a short tag generator for a personal knowledge base.\n"
+    "Given a web page title and URL, return 3-6 short, lowercase tags that describe its topic or type.\n"
+    "Rules:\n"
+    "- Only output the tags, space-separated, on a single line.\n"
+    "- Do NOT include '#' characters.\n"
+    "- Prefer generic topics like ai, frontend, philosophy, productivity, health, video, deep_read, article, docs, code.\n\n"
+    f"Title: {title}\n"
+    f"URL: {url}\n\n"
+    "Tags:"
+  )
+
+  body = {
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": prompt
+          }
+        ]
+      }
+    ]
+  }
+
+  url_endpoint = (
+    f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+    f"?key={GEMINI_API_KEY}"
+  )
+
+  try:
+    data = json.dumps(body).encode("utf-8")
+    req = urllib_request.Request(
+      url_endpoint,
+      data=data,
+      headers={"Content-Type": "application/json"},
+      method="POST"
+    )
+    with urllib_request.urlopen(req, timeout=10) as resp:
+      resp_body = resp.read()
+    parsed = json.loads(resp_body.decode("utf-8"))
+    candidates = parsed.get("candidates") or []
+    if not candidates:
+      return classify_tags_rule_based(title, url)
+    content = candidates[0].get("content") or {}
+    parts = content.get("parts") or []
+    if not parts:
+      return classify_tags_rule_based(title, url)
+    text = parts[0].get("text") or ""
+    # Split on whitespace and normalise.
+    tags = [t.strip().lower().lstrip("#") for t in text.split() if t.strip()]
+    # Deduplicate.
+    seen = set()
+    result = []
+    for t in tags:
+      if t and t not in seen:
+        seen.add(t)
+        result.append(t)
+    if not result:
+      return classify_tags_rule_based(title, url)
+    return result
+  except (urllib_error.URLError, urllib_error.HTTPError, TimeoutError, json.JSONDecodeError, KeyError):
+    # On any failure, silently fall back to simple rules.
+    return classify_tags_rule_based(title, url)
 
 
 def append_items_to_markdown(items):
@@ -116,7 +219,7 @@ def append_items_to_markdown(items):
       closed_at = item.get("closedAt") or item.get("closed_at") or 0
       closed_time = format_time_hm(closed_at) if closed_at else ""
       safe_title = escape_markdown_link_text(title)
-      tags = classify_tags(title, url)
+      tags = classify_tags_ai(title, url)
       tags_suffix = ""
       if tags:
         tags_suffix = " " + " ".join(f"#{t}" for t in tags)
@@ -183,8 +286,12 @@ def run_server(port: int = 8787):
 
 
 if __name__ == "__main__":
-  if VAULT_MARKDOWN_PATH == "/path/to/your/Obsidian/vault/Watch Later.md":
-    print("Please edit obsidian_writer.py and set VAULT_MARKDOWN_PATH to your Obsidian markdown file path.")
+  if not VAULT_MARKDOWN_PATH:
+    print(
+      "VAULT_MARKDOWN_PATH is not set.\n"
+      "Create a .env file next to obsidian_writer.py or set the environment variable, for example:\n"
+      '  echo \'VAULT_MARKDOWN_PATH="/full/path/to/your/Obsidian/vault/Watch Later.md"\' > .env'
+    )
   else:
     run_server()
 
