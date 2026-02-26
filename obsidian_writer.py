@@ -42,6 +42,38 @@ def escape_markdown_link_text(text: str) -> str:
   return text.replace("[", "\\[").replace("]", "\\]")
 
 
+def classify_tags(title: str, url: str) -> list[str]:
+  """
+  Lightweight auto-tagging based on title/URL.
+  This is intentionally simple and rules-based but structured so you can
+  replace it with a real AI model call later if you want to.
+  """
+  text = f"{title} {url}".lower()
+  tags: list[str] = []
+
+  if any(word in text for word in ("youtube.com", "vimeo.com", "watch?v=", "playlist?")):
+    tags.append("video")
+  if any(word in text for word in ("paper", "arxiv.org", "researchgate.net", "whitepaper")):
+    tags.append("deep_read")
+  if any(word in text for word in ("blog", "dev.to", "medium.com", "hashnode.com")):
+    tags.append("article")
+  if any(word in text for word in ("docs", "documentation", "manual", "reference")):
+    tags.append("docs")
+  if any(word in text for word in ("course", "tutorial", "learn", "guide")):
+    tags.append("learning")
+  if any(word in text for word in ("github.com", "gitlab.com", "bitbucket.org")):
+    tags.append("code")
+
+  # De-duplicate while preserving order.
+  seen = set()
+  unique_tags = []
+  for t in tags:
+    if t not in seen:
+      seen.add(t)
+      unique_tags.append(t)
+  return unique_tags
+
+
 def append_items_to_markdown(items):
   if not items:
     return
@@ -84,8 +116,12 @@ def append_items_to_markdown(items):
       closed_at = item.get("closedAt") or item.get("closed_at") or 0
       closed_time = format_time_hm(closed_at) if closed_at else ""
       safe_title = escape_markdown_link_text(title)
+      tags = classify_tags(title, url)
+      tags_suffix = ""
+      if tags:
+        tags_suffix = " " + " ".join(f"#{t}" for t in tags)
 
-      new_lines.append(f"- [ ] [{safe_title}]({url})  ")
+      new_lines.append(f"- [ ] [{safe_title}]({url}){tags_suffix}  ")
       if closed_time:
         new_lines.append(f"  Closed at: {closed_time}")
       new_lines.append("")
