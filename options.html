@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tab Watch Later – Settings</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 16px;
+        background: #0f172a;
+        color: #e5e7eb;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      h2 {
+        font-size: 1.1rem;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      p {
+        color: #cbd5f5;
+        line-height: 1.5;
+      }
+
+      .card {
+        background: #020617;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #1e293b;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.6);
+        max-width: 640px;
+      }
+
+      button {
+        background: linear-gradient(135deg, #4f46e5, #06b6d4);
+        color: white;
+        border: none;
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
+      }
+
+      button:hover {
+        filter: brightness(1.08);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+        box-shadow: none;
+      }
+
+      .hint {
+        font-size: 0.85rem;
+        color: #9ca3af;
+        margin-top: 6px;
+      }
+
+      .status {
+        font-size: 0.85rem;
+        margin-top: 8px;
+      }
+
+      .status.ok {
+        color: #4ade80;
+      }
+
+      .status.error {
+        color: #f97373;
+      }
+
+      .log {
+        margin-top: 1rem;
+        max-height: 220px;
+        overflow: auto;
+        font-size: 0.8rem;
+        background: #020617;
+        border-radius: 8px;
+        padding: 8px;
+        border: 1px solid #1e293b;
+      }
+
+      .log-entry {
+        margin-bottom: 6px;
+        border-bottom: 1px dashed #1e293b;
+        padding-bottom: 4px;
+      }
+
+      .log-entry:last-child {
+        border-bottom: none;
+      }
+
+      code {
+        background: #020617;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Tab Watch Later → Obsidian</h1>
+      <p>
+        Any tab that sits open for more than <strong>1 day</strong> will be closed and added to your
+        personal <strong>Watch Later</strong> list, ready to read inside your Obsidian vault.
+      </p>
+
+      <h2>1. Generate your Watch Later markdown</h2>
+      <p>
+        All auto-closed tabs are stored in an internal queue. Click below to turn them into markdown you
+        can paste into any file inside your Obsidian vault (for example <code>Watch Later.md</code>).
+      </p>
+      <button id="generate-markdown">Generate markdown from queued tabs</button>
+      <button id="copy-markdown" disabled>Copy markdown to clipboard</button>
+      <div id="sync-status" class="status"></div>
+      <p class="hint">
+        After you click <strong>Generate</strong>, paste the text below into your chosen Obsidian note.
+      </p>
+
+      <h2>2. Markdown preview</h2>
+      <textarea
+        id="markdown-output"
+        rows="10"
+        style="width: 100%; margin-top: 8px; background: #020617; color: #e5e7eb; border-radius: 8px; border: 1px solid #1e293b; padding: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.85rem;"
+        readonly
+      ></textarea>
+
+      <h2>Activity</h2>
+      <div id="activity-log" class="log"></div>
+    </div>
+
+    <script src="options.js" type="module"></script>
+  </body>
+</html>
+
