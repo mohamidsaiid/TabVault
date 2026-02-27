@@ -17,7 +17,10 @@ Automatically close old tabs in Chrome and send them into a **Watch Later** mark
 Think of it as a YouTube **Watch Later** playlist, but for the entire web, and saved straight into Obsidian.
 
 ### Example
-![options page](./assets/options_page.png) ![md result](./assets/md_result.png)
+
+| Image 1 | Image 2 |
+|---|---|
+| ![options page](./assets/options_page.png) |![md result](./assets/md_result.png)|
 
 ### Folder layout
 
